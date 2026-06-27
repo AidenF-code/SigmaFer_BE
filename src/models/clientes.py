@@ -36,7 +36,52 @@ class Clientes(Base):
     def get():
         clientes = session.query(Clientes).all()
         return clientes
-    
+    '''
     def get_by_id(cliente_id):
         cliente = session.query(Clientes).filter_by(id=cliente_id).first()
         return cliente
+    '''
+    
+    @staticmethod
+    def get_by_id(cliente_id):
+        return session.query(Clientes).filter_by(id=cliente_id).first()
+
+    @staticmethod
+    def get_by_razonsocial(razonsocial):
+        return session.query(Clientes).filter_by(
+            razonsocial=razonsocial
+        ).first()
+
+    @staticmethod
+    def get_by_nit(nit):
+        return session.query(Clientes).filter_by(
+            nit=nit
+        ).first()
+
+    @staticmethod
+    def get_by_identificacion(identificacion):
+        return session.query(Clientes).filter_by(
+            identificacion=identificacion
+        ).first()
+
+    @staticmethod
+    def get_by_correo(correo):
+        return session.query(Clientes).filter_by(
+            correo=correo
+        ).first()
+
+    @staticmethod
+    def get_by_telefono(telefono):
+        return session.query(Clientes).filter_by(
+            telefono=telefono
+        ).first()
+
+    @staticmethod
+    def get_by_direccion(direccion):
+        return session.query(Clientes).filter_by(
+            direccion=direccion
+        ).first()
+
+    
+    def to_dict(self):
+        return{column.name: getattr(self, column.name) for column in self.__table__.columns}

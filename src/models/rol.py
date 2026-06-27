@@ -25,3 +25,6 @@ class Roles(Base):
     def get_by_id(rol_id):
         rol = session.query(Roles).filter_by(id=rol_id).first()
         return rol
+    
+    def to_dict(self):
+        return{column.name: getattr(self, column.name) for column in self.__table__.columns}

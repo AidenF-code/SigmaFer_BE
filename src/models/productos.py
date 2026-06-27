@@ -9,9 +9,9 @@ class Productos(Base):
     id = Column(Integer, primary_key=True)
     nombre = Column(String(100), nullable=False)
     codigo = Column(String(50), unique=True, nullable=False)
-    stock = Column(Integer, nullable=False)
-    stock_minimo = Column(Integer, nullable=False)
-    stock_maximo = Column(Integer, nullable=False)
+    stock = Column(Numeric(12, 2), nullable=False)
+    stock_minimo = Column(Numeric(12, 2), nullable=False)
+    stock_maximo = Column(Numeric(12, 2), nullable=False)
     precio = Column(Numeric(12, 2), nullable=False)
     estado = Column(Boolean, nullable=False, default=True)
     fecha_creacion = Column(Date, nullable=False, default=date.today)
@@ -43,3 +43,10 @@ class Productos(Base):
     def get_by_id(producto_id):
         producto = session.query(Productos).filter_by(id=producto_id).first()
         return producto
+    
+    def to_dict(self):
+        return{column.name: getattr(self, column.name) for column in self.__table__.columns}
+    
+    @staticmethod
+    def get_by_codigo(codigo):
+        return session.query(Productos).filter_by(codigo=codigo).first()

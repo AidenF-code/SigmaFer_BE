@@ -22,7 +22,8 @@ class DetalleFacturas(Base):
         self.cantidad = cantidad
         self.valor_unitario = Decimal(str(valor_unitario))
         self.iva_porcentaje = Decimal(str(iva_porcentaje))
-        self.subtotal = Decimal(cantidad) * self.valor_unitario
+
+        self.subtotal = Decimal(str(cantidad)) * self.valor_unitario
         self.iva = self.subtotal * (self.iva_porcentaje / Decimal('100'))
         self.valor_total = self.subtotal + self.iva
 
@@ -41,3 +42,14 @@ class DetalleFacturas(Base):
     def get_by_id(detalle_id):
         detalle = session.query(DetalleFacturas).filter_by(id=detalle_id).first()
         return detalle
+    
+    def get_by_factura(factura_id):
+        return session.query(DetalleFacturas).filter_by(
+            factura_id=factura_id
+        ).all()
+    
+    def to_dict(self):
+        return {
+            column.name: getattr(self, column.name)
+            for column in self.__table__.columns
+        }

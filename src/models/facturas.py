@@ -25,23 +25,45 @@ class Facturas(Base):
         self.metodo_pago_id = metodo_pago_id
         self.observaciones = observaciones
 
-    def recalcular_totales(self, detalles):
-        self.subtotal = sum(det.subtotal for det in detalles)
-        self.iva = sum(det.iva for det in detalles)
-        self.total = sum(det.valor_total for det in detalles)
+    def recalcular_totales(self, detalles_factura):
+        self.subtotal = sum(detalle.subtotal for detalle in detalles_factura)
+        self.iva = sum(detalle.iva for detalle in detalles_factura)
+        self.total = sum(detalle.valor_total for detalle in detalles_factura)
 
     def save(self):
         session.add(self)
         session.commit()
-    
+
     def delete(self):
         session.delete(self)
         session.commit()
 
     def get():
-        facturas = session.query(Facturas).all()
-        return facturas
-    
+        return session.query(Facturas).all()
+
     def get_by_id(factura_id):
-        factura = session.query(Facturas).filter_by(id=factura_id).first()
-        return factura
+        return session.query(Facturas).filter_by(id=factura_id).first()
+
+    def get_by_numero(numero_factura):
+        return session.query(Facturas).filter_by(
+            numero_factura=numero_factura
+        ).first()
+    
+    @staticmethod
+    def generar_numero_factura():
+        ultima_factura = session.query(Facturas)\
+            .order_by(Facturas.id.desc())\
+            .first()
+        if not ultima_factura:
+            return "FV-000001"
+        
+        ultimo_numero = int(ultima_factura.numero_factura[3:])  # Extrae el número de la cadena "FV-000001"
+        nuevo_numero = ultimo_numero + 1
+        return f"FV-{nuevo_numero:06d}"
+
+
+    def to_dict(self):
+        return {
+            column.name: getattr(self, column.name)
+            for column in self.__table__.columns
+        }

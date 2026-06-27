@@ -25,3 +25,6 @@ class Categorias(Base):
     def get_by_id(categoria_id):
         categoria = session.query(Categorias).filter_by(id=categoria_id).first()
         return categoria
+    
+    def to_dict(self):
+        return{column.name: getattr(self, column.name) for column in self.__table__.columns}

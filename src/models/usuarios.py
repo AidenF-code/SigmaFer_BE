@@ -38,3 +38,18 @@ class Usuarios(Base):
     def get_by_id(usuario_id):
         usuario = session.query(Usuarios).filter_by(id=usuario_id).first()
         return usuario
+    
+    @staticmethod
+    def get_by_identificacion(identificacion):
+        return session.query(Usuarios).filter_by(
+            identificacion=identificacion
+        ).first()
+    
+    @staticmethod
+    def get_by_correo(correo):
+        return session.query(Usuarios).filter_by(
+            correo=correo
+        ).first()
+    
+    def to_dict(self):
+        return{column.name: getattr(self, column.name) for column in self.__table__.columns}
