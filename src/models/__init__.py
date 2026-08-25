@@ -1,14 +1,15 @@
+import os
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
 import pymysql
 
-engine = create_engine('mysql+pymysql://root@localhost:3306/SigmaFer?charset=utf8mb4')
+DATABASE_URL = os.getenv('DATABASE_URL', 'mysql+pymysql://root@localhost:3306/sigmafer2?charset=utf8mb4')
 
-connection = engine.connect()
+engine = create_engine(DATABASE_URL)
 
-Session = sessionmaker(bind=engine) 
+Session = scoped_session(sessionmaker(bind=engine))
 
-session = Session()
+session = Session
 
 Base = declarative_base()
-Base.metadata.bind = engine
+

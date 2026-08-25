@@ -18,13 +18,17 @@ class Categorias(Base):
         session.delete(self)
         session.commit()
 
+    @staticmethod
     def get():
-        categorias = session.query(Categorias).all()
-        return categorias
+        return session.query(Categorias).all()
 
+    @staticmethod
     def get_by_id(categoria_id):
-        categoria = session.query(Categorias).filter_by(id=categoria_id).first()
-        return categoria
+        return session.query(Categorias).filter_by(id=categoria_id).first()
+
+    @staticmethod
+    def get_by_nombre(nombre):
+        return session.query(Categorias).filter_by(nombre=nombre).first()
     
     def to_dict(self):
-        return{column.name: getattr(self, column.name) for column in self.__table__.columns}
+        return {column.name: getattr(self, column.name) for column in self.__table__.columns}

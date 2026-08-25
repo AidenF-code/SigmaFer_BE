@@ -20,10 +20,17 @@ class MetodoPago(Base):
         session.delete(self)
         session.commit()
 
+    @staticmethod
     def get():
-        metodos_pago = session.query(MetodoPago).all()
-        return metodos_pago
+        return session.query(MetodoPago).all()
     
+    @staticmethod
     def get_by_id(metodo_id):
-        metodo = session.query(MetodoPago).filter_by(id=metodo_id).first()
-        return metodo
+        return session.query(MetodoPago).filter_by(id=metodo_id).first()
+
+    @staticmethod
+    def get_by_nombre(nombre):
+        return session.query(MetodoPago).filter_by(nombre=nombre).first()
+
+    def to_dict(self):
+        return {column.name: getattr(self, column.name) for column in self.__table__.columns}

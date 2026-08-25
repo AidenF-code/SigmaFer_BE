@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, Numeric, ForeignKey
+from sqlalchemy.orm import relationship
 from decimal import Decimal
 from src.models import Base, session
 
@@ -15,6 +16,8 @@ class DetalleFacturas(Base):
     valor_total = Column(Numeric(12, 2), nullable=False)
     factura_id = Column(Integer, ForeignKey('facturas.id'), nullable=False)
     producto_id = Column(Integer, ForeignKey('productos.id'), nullable=False)
+
+    producto = relationship('Productos', foreign_keys=[producto_id])
 
     def __init__(self, factura_id, producto_id, cantidad, valor_unitario, iva_porcentaje):
         self.factura_id = factura_id
@@ -35,21 +38,26 @@ class DetalleFacturas(Base):
         session.delete(self)
         session.commit()
 
+    @staticmethod
     def get():
-        detalles = session.query(DetalleFacturas).all()
-        return detalles
+        return session.query(DetalleFacturas).all()
     
+    @staticmethod
     def get_by_id(detalle_id):
-        detalle = session.query(DetalleFacturas).filter_by(id=detalle_id).first()
-        return detalle
+        return session.query(DetalleFacturas).filter_by(id=detalle_id).first()
     
+    @staticmethod
     def get_by_factura(factura_id):
         return session.query(DetalleFacturas).filter_by(
             factura_id=factura_id
         ).all()
     
     def to_dict(self):
-        return {
-            column.name: getattr(self, column.name)
-            for column in self.__table__.columns
-        }
+        result = {}
+        for column in self.__table__.columns:
+            val = getattr(self, column.name)
+            if hasattr(val, '__float__'):
+                result[column.name] = str(val)
+            else:
+                result[column.name] = val
+        return result

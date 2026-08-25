@@ -16,6 +16,8 @@ def get_detalle_facturas():
             'id': detalle.id,
             'factura_id': detalle.factura_id,
             'producto_id': detalle.producto_id,
+            'producto_nombre': detalle.producto.nombre if detalle.producto else '',
+            'producto_codigo': detalle.producto.codigo if detalle.producto else '',
             'cantidad': detalle.cantidad,
             'valor_unitario': str(detalle.valor_unitario),
             'subtotal': str(detalle.subtotal),
@@ -33,6 +35,8 @@ def get_detalle_factura_by_id(id):
             'id': detalle.id,
             'factura_id': detalle.factura_id,
             'producto_id': detalle.producto_id,
+            'producto_nombre': detalle.producto.nombre if detalle.producto else '',
+            'producto_codigo': detalle.producto.codigo if detalle.producto else '',
             'cantidad': detalle.cantidad,
             'valor_unitario': str(detalle.valor_unitario),
             'subtotal': str(detalle.subtotal),
@@ -43,9 +47,10 @@ def get_detalle_factura_by_id(id):
         return jsonify(result), 200
     else:
         return jsonify({'message': 'Detalle de factura no encontrado'}), 404
+
     
 
-@detalle_facturas_bp.route('/factura/<int:factura_id>', methods=['GET'])#Mostrar detalles de factura por ID de factura
+@detalle_facturas_bp.route('/factura/<int:factura_id>', methods=['GET'])
 def get_detalle_facturas_by_factura(factura_id):
 
     factura = Facturas.get_by_id(factura_id)
@@ -54,7 +59,7 @@ def get_detalle_facturas_by_factura(factura_id):
     
     detalles = DetalleFacturas.get_by_factura(factura_id)
     if not detalles:
-        return jsonify({'message': f'La factura {factura.numero_factura} no tiene detalles registrados'}), 404
+        return jsonify([]), 200
     
     result = []
     for detalle in detalles:
@@ -62,6 +67,8 @@ def get_detalle_facturas_by_factura(factura_id):
             'id': detalle.id,
             'factura_id': detalle.factura_id,
             'producto_id': detalle.producto_id,
+            'producto_nombre': detalle.producto.nombre if detalle.producto else '',
+            'producto_codigo': detalle.producto.codigo if detalle.producto else '',
             'cantidad': detalle.cantidad,
             'valor_unitario': str(detalle.valor_unitario),
             'subtotal': str(detalle.subtotal),
@@ -70,6 +77,7 @@ def get_detalle_facturas_by_factura(factura_id):
             'valor_total': str(detalle.valor_total)
         })
     return jsonify(result), 200
+
 
 
 
@@ -243,8 +251,8 @@ def update_detalle_factura(detalle_id):
         return jsonify({'message': 'Valores numéricos inválidos'}), 400
 
     # 7. Validaciones de negocio
-    if cantidad < 0:
-        return jsonify({'message': 'La cantidad no puede ser negativa'}), 400
+    if cantidad <= 0:
+        return jsonify({'message': 'La cantidad debe ser mayor que cero'}), 400
 
     if valor_unitario < 0:
         return jsonify({'message': 'El valor unitario no puede ser negativo'}), 400
@@ -263,19 +271,24 @@ def update_detalle_factura(detalle_id):
 
     cambio_producto = detalle.producto_id != producto_id
 
-    
     # MISMO PRODUCTO
-    
     if not cambio_producto:
+        diferencia = cantidad - detalle.cantidad
+        if diferencia > 0:
+            if producto_anterior.stock < diferencia:
+                return jsonify({'message': 'Stock insuficiente'}), 400
+            producto_anterior.stock -= diferencia
+            producto_anterior.save()
+        elif diferencia < 0:
+            producto_anterior.stock += abs(diferencia)
+            producto_anterior.save()
 
         detalle.cantidad = cantidad
         detalle.valor_unitario = valor_unitario
         detalle.iva_porcentaje = iva_porcentaje
 
     # CAMBIO PRODUCTO
-    
     else:
-
         # devolver stock del producto anterior
         producto_anterior.stock += detalle.cantidad
         producto_anterior.save()
@@ -320,3 +333,41 @@ def update_detalle_factura(detalle_id):
         'message': 'Detalle actualizado correctamente',
         'detalle_factura': detalle_dict
     }), 200
+
+
+# =========================================================
+# ELIMINAR DETALLE DE FACTURA
+# =========================================================
+
+@detalle_facturas_bp.route('/<int:detalle_id>', methods=['DELETE'])
+def delete_detalle_factura(detalle_id):
+    detalle = DetalleFacturas.get_by_id(detalle_id)
+    if not detalle:
+        return jsonify({'message': 'Detalle de factura no encontrado'}), 404
+
+    factura = Facturas.get_by_id(detalle.factura_id)
+    if not factura:
+        return jsonify({'message': 'Factura no encontrada'}), 404
+
+    if factura.estado_pago:
+        return jsonify({'message': 'No se pueden eliminar detalles de una factura pagada'}), 400
+
+    producto = Productos.get_by_id(detalle.producto_id)
+    if producto:
+        producto.stock += detalle.cantidad
+        producto.save()
+
+    try:
+        factura_id = factura.id
+        detalle.delete()
+
+        # Recalcular totales de la factura
+        detalles_restantes = DetalleFacturas.get_by_factura(factura_id)
+        factura.recalcular_totales(detalles_restantes)
+        factura.save()
+
+        return jsonify({'message': 'Detalle de factura eliminado correctamente'}), 200
+    except Exception as e:
+        from src.models import session
+        session.rollback()
+        return jsonify({'message': 'Error al eliminar el detalle de factura', 'error': str(e)}), 500

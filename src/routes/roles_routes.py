@@ -31,10 +31,17 @@ def get_rol_by_id(rol_id):
 @roles_bp.route('/', methods=['POST'])
 def create_rol():
     data = request.get_json()
+    if not data:
+        return jsonify({'message': 'No se proporcionaron datos'}), 400
+
     nombre = data.get('nombre', '').strip()
 
     if not nombre:
         return jsonify({'message': 'El campo "nombre" es requerido'}), 400
+
+    existente = Roles.get_by_nombre(nombre)
+    if existente:
+        return jsonify({'message': 'Ya existe un rol con ese nombre'}), 400
 
     rol = Roles(nombre=nombre)
     rol.save()
@@ -49,12 +56,37 @@ def update_rol(id):
         return jsonify({'message': 'Rol no encontrado'}), 404
 
     data = request.get_json()
+    if not data:
+        return jsonify({'message': 'Datos inválidos'}), 400
+
     nombre = data.get('nombre', '').strip()
 
     if not nombre:
         return jsonify({'message': 'El campo "nombre" es requerido'}), 400
 
-    rol.nombre = nombre
+    existente = Roles.get_by_nombre(nombre)
+    if existente and existente.id != id:
+        return jsonify({'message': 'Ya existe otro rol con ese nombre'}), 400
 
+    rol.nombre = nombre
     rol.save()
     return jsonify({'message': 'Rol actualizado exitosamente', 'rol': rol.to_dict()}), 200
+
+
+#Eliminar Rol
+@roles_bp.route('/<int:id>', methods=['DELETE'])
+def delete_rol(id):
+    rol = Roles.get_by_id(id)
+    if not rol:
+        return jsonify({'message': 'Rol no encontrado'}), 404
+
+    try:
+        rol.delete()
+        return jsonify({'message': 'Rol eliminado exitosamente'}), 200
+    except Exception as e:
+        from src.models import session
+        session.rollback()
+        return jsonify({
+            'message': 'No se puede eliminar el rol (puede tener usuarios asignados)',
+            'error': str(e)
+        }), 500
