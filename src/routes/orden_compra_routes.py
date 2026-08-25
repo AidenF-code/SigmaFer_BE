@@ -6,6 +6,7 @@ from src.models.detalle_oc import DetalleOC
 from src.models.proveedores import Proveedores
 from src.models.usuarios import Usuarios
 from src.models.productos import Productos
+from src.utils.auth import token_required, rol_required
 
 ordenes_compra_bp = Blueprint('ordenes_compra', __name__)
 
@@ -15,6 +16,8 @@ ordenes_compra_bp = Blueprint('ordenes_compra', __name__)
 # =========================================================
 
 @ordenes_compra_bp.route('/siguiente_numero', methods=['GET'])
+@token_required
+@rol_required('Administrador')
 def get_siguiente_numero_oc():
     numero = OrdenCompra.generar_numero_orden()
     return jsonify({'numero_orden': numero}), 200
@@ -25,6 +28,8 @@ def get_siguiente_numero_oc():
 # =========================================================
 
 @ordenes_compra_bp.route('/', methods=['GET'])
+@token_required
+@rol_required('Administrador')
 def get_ordenes():
     ordenes = OrdenCompra.get()
     result = []
@@ -51,6 +56,8 @@ def get_ordenes():
 # =========================================================
 
 @ordenes_compra_bp.route('/<int:id>', methods=['GET'])
+@token_required
+@rol_required('Administrador')
 def get_orden(id):
     orden = OrdenCompra.get_by_id(id)
     if not orden:
@@ -90,6 +97,8 @@ def get_orden(id):
 # =========================================================
 
 @ordenes_compra_bp.route('/', methods=['POST'])
+@token_required
+@rol_required('Administrador')
 def create_orden():
     data = request.get_json()
     if not data:
@@ -101,7 +110,7 @@ def create_orden():
 
     usuario_id = data.get('usuario_id')
     if not usuario_id or not Usuarios.get_by_id(usuario_id):
-        primer_usuario = Usuarios.get_all()
+        primer_usuario = Usuarios.get_all() if hasattr(Usuarios, 'get_all') else Usuarios.get()
         if primer_usuario:
             usuario_id = primer_usuario[0].id
         else:
@@ -160,6 +169,8 @@ def create_orden():
 # =========================================================
 
 @ordenes_compra_bp.route('/<int:id>', methods=['PUT'])
+@token_required
+@rol_required('Administrador')
 def update_orden(id):
     orden = OrdenCompra.get_by_id(id)
     if not orden:
@@ -203,6 +214,8 @@ def update_orden(id):
 # =========================================================
 
 @ordenes_compra_bp.route('/<int:id>', methods=['DELETE'])
+@token_required
+@rol_required('Administrador')
 def delete_orden(id):
     orden = OrdenCompra.get_by_id(id)
     if not orden:
@@ -224,6 +237,8 @@ def delete_orden(id):
 # =========================================================
 
 @ordenes_compra_bp.route('/<int:orden_id>/detalles', methods=['POST'])
+@token_required
+@rol_required('Administrador')
 def add_detalle_orden(orden_id):
     orden = OrdenCompra.get_by_id(orden_id)
     if not orden:
@@ -278,6 +293,8 @@ def add_detalle_orden(orden_id):
 # =========================================================
 
 @ordenes_compra_bp.route('/detalles/<int:detalle_id>', methods=['DELETE'])
+@token_required
+@rol_required('Administrador')
 def delete_detalle_orden(detalle_id):
     detalle = DetalleOC.get_by_id(detalle_id)
     if not detalle:

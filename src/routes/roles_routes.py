@@ -1,9 +1,12 @@
 from flask import Blueprint, jsonify, request
 from src.models.rol import Roles
+from src.utils.auth import token_required, rol_required
 
 roles_bp = Blueprint('roles', __name__)
 
 @roles_bp.route('/', methods=['GET'])
+@token_required
+@rol_required('Administrador')
 def get_roles():
     roles = Roles.get()
     roles_list = []
@@ -15,6 +18,8 @@ def get_roles():
     return jsonify(roles_list), 200
 
 @roles_bp.route('/<int:rol_id>', methods=['GET'])
+@token_required
+@rol_required('Administrador')
 def get_rol_by_id(rol_id):
     rol = Roles.get_by_id(rol_id)
     if rol:
@@ -29,6 +34,8 @@ def get_rol_by_id(rol_id):
 
 # Crear Rol    
 @roles_bp.route('/', methods=['POST'])
+@token_required
+@rol_required('Administrador')
 def create_rol():
     data = request.get_json()
     if not data:
@@ -50,6 +57,8 @@ def create_rol():
 
 #Actualizar Rol
 @roles_bp.route('/<int:id>', methods=['PUT'])
+@token_required
+@rol_required('Administrador')
 def update_rol(id):
     rol = Roles.get_by_id(id)
     if not rol:
@@ -75,6 +84,8 @@ def update_rol(id):
 
 #Eliminar Rol
 @roles_bp.route('/<int:id>', methods=['DELETE'])
+@token_required
+@rol_required('Administrador')
 def delete_rol(id):
     rol = Roles.get_by_id(id)
     if not rol:
@@ -89,4 +100,4 @@ def delete_rol(id):
         return jsonify({
             'message': 'No se puede eliminar el rol (puede tener usuarios asignados)',
             'error': str(e)
-        }), 500
+        }), 500

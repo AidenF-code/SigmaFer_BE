@@ -2,10 +2,13 @@ from flask import Blueprint, jsonify, request
 from src.models import session
 from src.models.usuarios import Usuarios
 from src.models.rol import Roles
+from src.utils.auth import token_required, rol_required, generate_token
 
 usuarios_bp = Blueprint('usuarios', __name__)
 
 @usuarios_bp.route('/', methods=['GET'])  # Todos los usuarios
+@token_required
+@rol_required('Administrador')
 def get_usuarios():
     usuarios = Usuarios.get()
     usuarios_list = []
@@ -25,6 +28,8 @@ def get_usuarios():
 
 
 @usuarios_bp.route('/<int:id>', methods=['GET'])  # Usuario por ID
+@token_required
+@rol_required('Administrador')
 def get_usuario(id):
     usuario = Usuarios.get_by_id(id)
     if usuario:
@@ -45,6 +50,8 @@ def get_usuario(id):
 
 
 @usuarios_bp.route('/', methods=['POST'])  # Crear usuario
+@token_required
+@rol_required('Administrador')
 def crear_usuario():
     data = request.get_json()
 
@@ -128,7 +135,7 @@ def crear_usuario():
             rol_id=rol_id,
             estado=estado
         )
-
+        nuevo_usuario.set_password(password)
         nuevo_usuario.save()
 
         return jsonify({
@@ -145,6 +152,8 @@ def crear_usuario():
 
 
 @usuarios_bp.route('/<int:id>', methods=['PUT'])  # Actualizar usuario
+@token_required
+@rol_required('Administrador')
 def update_usuario(id):
     usuario = Usuarios.get_by_id(id)
     if not usuario:
@@ -178,8 +187,8 @@ def update_usuario(id):
     if not telefono:
         return jsonify({'message': 'El campo "telefono" es obligatorio'}), 400
 
-    if 'password' in data and data['password'].strip():
-        usuario.password = data['password'].strip()
+    if 'password' in data and str(data['password']).strip():
+        usuario.set_password(str(data['password']).strip())
 
     if 'rol_id' in data and data['rol_id'] is not None:
         rol = Roles.get_by_id(data['rol_id'])
@@ -212,6 +221,8 @@ def update_usuario(id):
 
 
 @usuarios_bp.route('/<int:id>', methods=['DELETE'])  # Eliminar usuario
+@token_required
+@rol_required('Administrador')
 def delete_usuario(id):
     usuario = Usuarios.get_by_id(id)
     if not usuario:
@@ -241,7 +252,7 @@ def login_usuario():
         return jsonify({'message': 'Correo y contraseña son obligatorios'}), 400
 
     usuario = Usuarios.get_by_correo(correo)
-    if not usuario or usuario.password != password:
+    if not usuario or not usuario.verificar_password(password):
         return jsonify({'message': 'Correo o contraseña incorrectos'}), 401
 
     if not usuario.estado:
@@ -254,7 +265,7 @@ def login_usuario():
 
     return jsonify({
         'message': 'Inicio de sesión exitoso',
+        'access_token': generate_token(usuario),
+        'token_type': 'Bearer',
         'usuario': user_data
     }), 200
-
-

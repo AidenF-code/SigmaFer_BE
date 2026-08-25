@@ -1,21 +1,21 @@
 from flask import Blueprint, jsonify, request
 from src.models.clientes import Clientes
+from src.utils.auth import token_required, rol_required
 
 clientes_bp = Blueprint('clientes', __name__)
 
 # =========================================================
-
 # OBTENER TODOS LOS CLIENTES
-
 # =========================================================
 
 @clientes_bp.route('/', methods=['GET'])
+@token_required
+@rol_required('Administrador')
 def get_clientes():
     clientes = Clientes.get()
     clientes_list = []
 
     for cliente in clientes:
-
         clientes_list.append({
             'id': cliente.id,
             'razon_social': cliente.razon_social,
@@ -33,18 +33,16 @@ def get_clientes():
 
 
 # =========================================================
-
 # OBTENER CLIENTE POR ID
-
 # =========================================================
 
 @clientes_bp.route('/<int:id>', methods=['GET'])
+@token_required
+@rol_required('Administrador')
 def get_cliente(id):
-
     cliente = Clientes.get_by_id(id)
 
     if cliente:
-
         cliente_data = {
             'id': cliente.id,
             'razon_social': cliente.razon_social,
@@ -57,189 +55,109 @@ def get_cliente(id):
             'estado': cliente.estado,
             'fecha_creacion': cliente.fecha_creacion.isoformat()
         }
-
         return jsonify(cliente_data), 200
-
     else:
-
         return jsonify({
             'message': 'Cliente no encontrado'
         }), 404
 
 
 # =========================================================
-
 # CREAR CLIENTE
-
 # =========================================================
 
 @clientes_bp.route('/', methods=['POST'])
+@token_required
+@rol_required('Administrador')
 def create_cliente():
     data = request.get_json()
 
     if not data:
         return jsonify({
-        'message': 'No se proporcionaron datos'
+            'message': 'No se proporcionaron datos'
         }), 400
 
-
-# -----------------------------------------------------
-# Tipo de documento
-# -----------------------------------------------------
-
     tipo_documento = data.get('tipo_documento','').strip().upper()
-
     if not tipo_documento:
         return jsonify({'message': 'El tipo de documento es obligatorio'}), 400
 
     tipos_validos = ['CC', 'CE', 'NIT']
-
     if tipo_documento not in tipos_validos:
         return jsonify({
             'message': 'Tipo de documento inválido'
         }), 400
 
-
-# -----------------------------------------------------
-# Razón social
-# -----------------------------------------------------
-
-    razon_social = data.get(
-        'razon_social',
-        ''
-    ).strip()
-
+    razon_social = data.get('razon_social', '').strip()
     if not razon_social:
         return jsonify({
             'message': 'El campo "razon social" es obligatorio'
         }), 400
 
-    razon_social_existente = Clientes.get_by_razon_social(
-        razon_social
-    )
-
+    razon_social_existente = Clientes.get_by_razon_social(razon_social)
     if razon_social_existente:
         return jsonify({
             'message': 'Ya existe un cliente con esa razón social'
         }), 400
 
-
-# -----------------------------------------------------
-# Nombre
-# -----------------------------------------------------
-
-    nombre = data.get(
-        'nombre',
-        ''
-    ).strip()
-
+    nombre = data.get('nombre', '').strip()
     if not nombre:
         return jsonify({
             'message': 'El campo "nombre" es obligatorio'
         }), 400
 
-
-# -----------------------------------------------------
-# Número de identificación
-# -----------------------------------------------------
-
-    numero_identificacion = data.get(
-        'numero_identificacion',
-        ''
-    ).strip()
-
+    numero_identificacion = data.get('numero_identificacion', '').strip()
     if not numero_identificacion:
         return jsonify({
             'message': 'El campo "numero_identificacion" es obligatorio'
         }), 400
 
-    identificacion_existente = Clientes.get_by_identificacion(
-        numero_identificacion
-    )
-
+    identificacion_existente = Clientes.get_by_identificacion(numero_identificacion)
     if identificacion_existente:
         return jsonify({
             'message': 'Ya existe un cliente con ese número de identificación'
         }), 400
 
-
-# -----------------------------------------------------
-# Correo
-# -----------------------------------------------------
-
-    correo = data.get(
-        'correo',
-        ''
-    ).strip()
-
+    correo = data.get('correo', '').strip()
     if not correo:
         return jsonify({
             'message': 'El campo "correo" es obligatorio'
         }), 400
 
     correo_existente = Clientes.get_by_correo(correo)
-
     if correo_existente:
         return jsonify({
             'message': 'Ya existe un cliente con ese correo'
         }), 400
 
-
-# -----------------------------------------------------
-# Teléfono
-# -----------------------------------------------------
-
-    telefono = data.get(
-        'telefono',
-        ''
-    ).strip()
-
+    telefono = data.get('telefono', '').strip()
     if not telefono:
         return jsonify({
             'message': 'El campo "telefono" es obligatorio'
         }), 400
 
     telefono_existente = Clientes.get_by_telefono(telefono)
-
     if telefono_existente:
         return jsonify({
             'message': 'Ya existe un cliente con ese número de teléfono'
         }), 400
 
-
-# -----------------------------------------------------
-# Dirección
-# -----------------------------------------------------
-
-    direccion = data.get(
-        'direccion',
-        ''
-    ).strip()
-
+    direccion = data.get('direccion', '').strip()
     if not direccion:
         return jsonify({
             'message': 'El campo "direccion" es obligatorio'
         }), 400
 
     direccion_existente = Clientes.get_by_direccion(direccion)
-
     if direccion_existente:
         return jsonify({
             'message': 'Ya existe un cliente con esa dirección'
         }), 400
 
-    # Validación del estado
     estado = data.get('estado')
-    
     if estado not in ['0', '1', 0, 1, True, False]:
         return jsonify({'message': 'El estado debe ser válido'}), 400
     
     estado = bool(int(estado))
-
-
-# -----------------------------------------------------
-# Crear cliente
-# -----------------------------------------------------
 
     cliente = Clientes(
         razon_social=razon_social,
@@ -251,7 +169,6 @@ def create_cliente():
         direccion=direccion,
         estado=estado
     )
-
     cliente.save()
 
     return jsonify({
@@ -261,31 +178,25 @@ def create_cliente():
 
 
 # =========================================================
-
 # ACTUALIZAR CLIENTE
-
 # =========================================================
 
 @clientes_bp.route('/<int:id>', methods=['PUT'])
+@token_required
+@rol_required('Administrador')
 def update_cliente(id):
-
     cliente = Clientes.get_by_id(id)
-
     if not cliente:
         return jsonify({
             'message': 'Cliente no encontrado'
         }), 404
 
     data = request.get_json()
-
     if not data:
         return jsonify({
             'message': 'Datos inválidos'
         }), 400
 
-    # -----------------------------------------------------
-    # Tipo de documento
-    # -----------------------------------------------------
     tipo_documento = data.get('tipo_documento', cliente.tipo_documento).strip().upper()
     tipos_validos = ['CC', 'CE', 'NIT']
     if tipo_documento not in tipos_validos:
@@ -293,9 +204,6 @@ def update_cliente(id):
             'message': 'Tipo de documento inválido'
         }), 400
 
-    # -----------------------------------------------------
-    # Razón social
-    # -----------------------------------------------------
     razon_social = (data.get('razon_social') or data.get('razonsocial') or cliente.razon_social).strip()
     if not razon_social:
         return jsonify({
@@ -308,18 +216,12 @@ def update_cliente(id):
             'message': 'Ya existe un cliente con esa razón social'
         }), 400
 
-    # -----------------------------------------------------
-    # Nombre
-    # -----------------------------------------------------
     nombre = data.get('nombre', cliente.nombre).strip()
     if not nombre:
         return jsonify({
             'message': 'El campo "nombre" es obligatorio'
         }), 400
 
-    # -----------------------------------------------------
-    # Número de identificación
-    # -----------------------------------------------------
     numero_identificacion = data.get('numero_identificacion', cliente.numero_identificacion).strip()
     if not numero_identificacion:
         return jsonify({
@@ -332,9 +234,6 @@ def update_cliente(id):
             'message': 'Ya existe un cliente con ese número de identificación'
         }), 400
 
-    # -----------------------------------------------------
-    # Correo
-    # -----------------------------------------------------
     correo = data.get('correo', cliente.correo).strip()
     if not correo:
         return jsonify({
@@ -347,9 +246,6 @@ def update_cliente(id):
             'message': 'Ya existe un cliente con ese correo'
         }), 400
 
-    # -----------------------------------------------------
-    # Teléfono
-    # -----------------------------------------------------
     telefono = data.get('telefono', cliente.telefono).strip()
     if not telefono:
         return jsonify({
@@ -362,9 +258,6 @@ def update_cliente(id):
             'message': 'Ya existe un cliente con ese número de teléfono'
         }), 400
 
-    # -----------------------------------------------------
-    # Dirección
-    # -----------------------------------------------------
     direccion = data.get('direccion', cliente.direccion).strip()
     if not direccion:
         return jsonify({
@@ -377,17 +270,11 @@ def update_cliente(id):
             'message': 'Ya existe un cliente con esa dirección'
         }), 400
 
-    # -----------------------------------------------------
-    # Estado
-    # -----------------------------------------------------
     if 'estado' in data:
         estado = data.get('estado')
         if estado in ['0', '1', 0, 1, True, False]:
             cliente.estado = bool(int(estado))
 
-    # -----------------------------------------------------
-    # Actualizar cliente
-    # -----------------------------------------------------
     cliente.razon_social = razon_social
     cliente.nombre = nombre
     cliente.tipo_documento = tipo_documento
@@ -409,6 +296,8 @@ def update_cliente(id):
 # =========================================================
 
 @clientes_bp.route('/<int:id>', methods=['DELETE'])
+@token_required
+@rol_required('Administrador')
 def delete_cliente(id):
     cliente = Clientes.get_by_id(id)
     if not cliente:
@@ -424,5 +313,3 @@ def delete_cliente(id):
             'message': 'No se pudo eliminar el cliente (puede tener registros asociados)',
             'error': str(e)
         }), 500
-
-

@@ -7,6 +7,7 @@ from src.models.clientes import Clientes
 from src.models.proveedores import Proveedores
 from src.models.usuarios import Usuarios
 from src.models.productos import Productos
+from src.utils.auth import token_required, rol_required
 
 documentos_inventario_bp = Blueprint('documentos_inventario', __name__)
 
@@ -16,6 +17,8 @@ documentos_inventario_bp = Blueprint('documentos_inventario', __name__)
 # =========================================================
 
 @documentos_inventario_bp.route('/', methods=['GET'])
+@token_required
+@rol_required('Administrador')
 def get_documentos():
     import unicodedata
     def clean_txt(t):
@@ -55,6 +58,8 @@ def get_documentos():
 # =========================================================
 
 @documentos_inventario_bp.route('/<int:id>', methods=['GET'])
+@token_required
+@rol_required('Administrador')
 def get_documento(id):
     doc = DocumentoInventarios.get_by_id(id)
     if not doc:
@@ -89,6 +94,11 @@ def get_documento(id):
         'cliente_contacto': doc.cliente.nombre if doc.cliente else None,
         'proveedor_id': doc.proveedor_id,
         'proveedor': doc.proveedor.nombre if doc.proveedor else None,
+        'proveedor_nit': doc.proveedor.nit if doc.proveedor else None,
+        'proveedor_direccion': doc.proveedor.direccion if doc.proveedor else None,
+        'proveedor_telefono': doc.proveedor.telefono if doc.proveedor else None,
+        'proveedor_correo': doc.proveedor.correo if doc.proveedor else None,
+        'proveedor_contacto': doc.proveedor.nombre_contacto if doc.proveedor else None,
         'usuario_id': doc.usuario_id,
         'usuario': doc.usuario.nombre if doc.usuario else None,
         'detalles': detalles_list
@@ -101,6 +111,8 @@ def get_documento(id):
 # =========================================================
 
 @documentos_inventario_bp.route('/siguiente_numero', methods=['GET'])
+@token_required
+@rol_required('Administrador')
 def get_siguiente_numero():
     tipo = request.args.get('tipo', 'CO')
     numero = DocumentoInventarios.generar_numero_documento(tipo)
@@ -112,6 +124,8 @@ def get_siguiente_numero():
 # =========================================================
 
 @documentos_inventario_bp.route('/', methods=['POST'])
+@token_required
+@rol_required('Administrador')
 def create_documento():
     data = request.get_json()
     if not data:
@@ -138,12 +152,11 @@ def create_documento():
     usuario_id = data.get('usuario_id')
     if not usuario_id or not Usuarios.get_by_id(usuario_id):
         # Fallback al primer usuario si no se envió
-        primer_usuario = Usuarios.get_all()
+        primer_usuario = Usuarios.get_all() if hasattr(Usuarios, 'get_all') else Usuarios.get()
         if primer_usuario:
             usuario_id = primer_usuario[0].id
         else:
             return jsonify({'message': 'No hay usuarios registrados en el sistema'}), 400
-
 
     cliente_id = data.get('cliente_id')
     if cliente_id and not Clientes.get_by_id(cliente_id):
@@ -167,8 +180,6 @@ def create_documento():
         numero_doc = DocumentoInventarios.generar_numero_documento(prefijo)
 
     detalles_data = data.get('detalles', [])
-
-
 
     # Validar stock previo si es SALIDA
     if tipo_enum == TipoDocumento.SALIDA:
@@ -227,7 +238,6 @@ def create_documento():
 
     except Exception as e:
         session.rollback()
-
         return jsonify({'message': 'Error al crear el documento de inventario', 'error': str(e)}), 500
 
 
@@ -236,6 +246,8 @@ def create_documento():
 # =========================================================
 
 @documentos_inventario_bp.route('/<int:id>', methods=['PUT'])
+@token_required
+@rol_required('Administrador')
 def update_documento(id):
     doc = DocumentoInventarios.get_by_id(id)
     if not doc:
@@ -269,6 +281,8 @@ def update_documento(id):
 # =========================================================
 
 @documentos_inventario_bp.route('/<int:id>', methods=['DELETE'])
+@token_required
+@rol_required('Administrador')
 def delete_documento(id):
     doc = DocumentoInventarios.get_by_id(id)
     if not doc:

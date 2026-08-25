@@ -1,3 +1,6 @@
+import os
+from dotenv import load_dotenv
+
 from flask import Flask
 from src.models import Base, engine, session
 from src.models.productos import Productos
@@ -15,7 +18,13 @@ from src.models.facturas import Facturas
 from src.models.detalle_facturas import DetalleFacturas
 from src.routes import all_blueprints
 
+
+
+load_dotenv()
+
 app = Flask(__name__)
+
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
 
 try:
     Base.metadata.create_all(engine)
@@ -32,4 +41,4 @@ for bp in all_blueprints:
     app.register_blueprint(bp, url_prefix=url_prefix)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True)

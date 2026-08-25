@@ -9,6 +9,7 @@ from .proveedores_routes import proveedores_bp
 from .metodo_pago_routes import metodos_pago_bp
 from .orden_compra_routes import ordenes_compra_bp
 from .documento_inventarios_routes import documentos_inventario_bp
+from .auth_routes import auth_bp
 
 
 all_blueprints = [
@@ -22,5 +23,6 @@ all_blueprints = [
     proveedores_bp,
     metodos_pago_bp,
     ordenes_compra_bp,
-    documentos_inventario_bp
-]
+    documentos_inventario_bp,
+    auth_bp
+]

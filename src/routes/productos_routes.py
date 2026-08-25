@@ -4,11 +4,14 @@ from src.models import session
 from src.models.productos import Productos
 from src.models.categorias import Categorias
 from src.models.proveedores import Proveedores
+from src.utils.auth import token_required, rol_required
 
 productos_bp = Blueprint('productos', __name__)
 
 
 @productos_bp.route('/', methods=['GET'])
+@token_required
+@rol_required('Administrador')
 def get_productos():
     productos = Productos.get()
     productos_list = []
@@ -32,6 +35,8 @@ def get_productos():
 
 
 @productos_bp.route('/<int:producto_id>', methods=['GET'])
+@token_required
+@rol_required('Administrador')
 def get_producto_by_id(producto_id):
     producto = Productos.get_by_id(producto_id)
     if producto:
@@ -57,6 +62,8 @@ def get_producto_by_id(producto_id):
 
 # Crear Productos
 @productos_bp.route('/', methods=['POST'])
+@token_required
+@rol_required('Administrador')
 def create_producto():
     data = request.get_json()
     if not data:
@@ -161,6 +168,8 @@ def create_producto():
 
 # Actualizar Producto
 @productos_bp.route('/<int:id>', methods=['PUT'])
+@token_required
+@rol_required('Administrador')
 def update_producto(id):
     producto = Productos.get_by_id(id)
     if not producto:
@@ -237,8 +246,6 @@ def update_producto(id):
         elif isinstance(estado_val, (int, bool)):
             producto.estado = bool(estado_val)
 
-
-
     producto.nombre = nombre
     producto.codigo = codigo
     producto.stock = stock
@@ -258,6 +265,8 @@ def update_producto(id):
 
 # Eliminar Producto
 @productos_bp.route('/<int:id>', methods=['DELETE'])
+@token_required
+@rol_required('Administrador')
 def delete_producto(id):
     producto = Productos.get_by_id(id)
     if not producto:
@@ -271,4 +280,4 @@ def delete_producto(id):
         return jsonify({
             'message': 'No se pudo eliminar el producto (puede tener movimientos o facturas asociadas)',
             'error': str(e)
-        }), 500
+        }), 500

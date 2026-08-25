@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 
 from src.models.proveedores import Proveedores
+from src.utils.auth import token_required, rol_required
 
 
 proveedores_bp = Blueprint(
@@ -15,6 +16,8 @@ proveedores_bp = Blueprint(
 # =========================================================
 
 @proveedores_bp.route('/', methods=['GET'])
+@token_required
+@rol_required('Administrador')
 def get_proveedores():
 
     proveedores = Proveedores.get()
@@ -42,6 +45,8 @@ def get_proveedores():
 # =========================================================
 
 @proveedores_bp.route('/<int:proveedor_id>', methods=['GET'])
+@token_required
+@rol_required('Administrador')
 def get_proveedor(proveedor_id):
 
     proveedor = Proveedores.get_by_id(proveedor_id)
@@ -69,6 +74,8 @@ def get_proveedor(proveedor_id):
 # =========================================================
 
 @proveedores_bp.route('/', methods=['POST'])
+@token_required
+@rol_required('Administrador')
 def create_proveedor():
 
     data = request.get_json()
@@ -157,6 +164,8 @@ def create_proveedor():
 # =========================================================
 
 @proveedores_bp.route('/<int:proveedor_id>', methods=['PUT'])
+@token_required
+@rol_required('Administrador')
 def update_proveedor(proveedor_id):
 
     proveedor = Proveedores.get_by_id(proveedor_id)
@@ -289,6 +298,8 @@ def update_proveedor(proveedor_id):
 # =========================================================
 
 @proveedores_bp.route('/<int:proveedor_id>', methods=['DELETE'])
+@token_required
+@rol_required('Administrador')
 def delete_proveedor(proveedor_id):
 
     proveedor = Proveedores.get_by_id(proveedor_id)

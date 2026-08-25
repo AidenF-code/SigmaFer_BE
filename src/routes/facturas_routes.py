@@ -8,9 +8,7 @@ from src.models.metodo_pago import MetodoPago
 from src.models.facturas import Facturas
 from src.models.detalle_facturas import DetalleFacturas
 from src.models.productos import Productos
-
-
-
+from src.utils.auth import token_required, rol_required
 
 facturas_bp = Blueprint(
     'facturas',
@@ -23,6 +21,8 @@ facturas_bp = Blueprint(
 # =========================================================
 
 @facturas_bp.route('/', methods=['GET'])
+@token_required
+@rol_required('Administrador')
 def get_facturas():
 
     try:
@@ -116,6 +116,8 @@ def get_facturas():
 # =========================================================
 
 @facturas_bp.route('/<int:factura_id>', methods=['GET'])
+@token_required
+@rol_required('Administrador')
 def get_factura_by_id(factura_id):
 
     factura = Facturas.get_by_id(
@@ -189,6 +191,8 @@ def get_factura_by_id(factura_id):
     return jsonify(result), 200
 
 @facturas_bp.route('/siguiente_numero', methods=['GET'])
+@token_required
+@rol_required('Administrador')
 def get_siguiente_numero():
     numero = Facturas.generar_numero_factura()
     return jsonify({'numero_factura': numero}), 200
@@ -199,6 +203,8 @@ def get_siguiente_numero():
 # =========================================================
 
 @facturas_bp.route('/', methods=['POST'])
+@token_required
+@rol_required('Administrador')
 def create_factura():
 
     data = request.get_json()
@@ -372,6 +378,8 @@ def create_factura():
 # =========================================================
 
 @facturas_bp.route('/<int:id>', methods=['PUT'])
+@token_required
+@rol_required('Administrador')
 def update_factura(id):
 
     factura = Facturas.get_by_id(id)
@@ -488,6 +496,8 @@ def update_factura(id):
 # =========================================================
 
 @facturas_bp.route('/<int:id>', methods=['DELETE'])
+@token_required
+@rol_required('Administrador')
 def delete_factura(id):
     factura = Facturas.get_by_id(id)
     if not factura:
@@ -512,4 +522,4 @@ def delete_factura(id):
         return jsonify({
             'message': 'Error al eliminar la factura',
             'error': str(e)
-        }), 500
+        }), 500

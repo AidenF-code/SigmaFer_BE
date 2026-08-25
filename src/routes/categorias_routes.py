@@ -1,9 +1,12 @@
 from flask import Blueprint, jsonify, request
 from src.models.categorias import Categorias
+from src.utils.auth import token_required, rol_required
 
 categorias_bp = Blueprint('categorias', __name__)
 
 @categorias_bp.route('/', methods=['GET'])
+@token_required
+@rol_required('Administrador')
 def get_categorias():
     categorias = Categorias.get()
     categorias_list = []
@@ -15,6 +18,8 @@ def get_categorias():
     return jsonify(categorias_list), 200
 
 @categorias_bp.route('/<int:categoria_id>', methods=['GET'])
+@token_required
+@rol_required('Administrador')
 def get_categoria_by_id(categoria_id):
     categoria = Categorias.get_by_id(categoria_id)
     if categoria:
@@ -27,6 +32,8 @@ def get_categoria_by_id(categoria_id):
         return jsonify({'message': 'Categoría no encontrada'}), 404
     
 @categorias_bp.route('/', methods=['POST'])
+@token_required
+@rol_required('Administrador')
 def create_categoria():
     data = request.get_json()
     if not data:
@@ -46,6 +53,8 @@ def create_categoria():
     return jsonify({'message': 'Categoría creada exitosamente', 'categoria': categoria.to_dict()}), 201
 
 @categorias_bp.route('/<int:id>', methods=['PUT'])
+@token_required
+@rol_required('Administrador')
 def update_categoria(id):
     categoria = Categorias.get_by_id(id)
     if not categoria:
@@ -69,6 +78,8 @@ def update_categoria(id):
     return jsonify({'message': 'Categoría actualizada exitosamente', 'categoria': categoria.to_dict()}), 200
 
 @categorias_bp.route('/<int:id>', methods=['DELETE'])
+@token_required
+@rol_required('Administrador')
 def delete_categoria(id):
     categoria = Categorias.get_by_id(id)
     if not categoria:
@@ -83,4 +94,4 @@ def delete_categoria(id):
         return jsonify({
             'message': 'No se puede eliminar la categoría (puede tener productos asociados)',
             'error': str(e)
-        }), 500
+        }), 500
