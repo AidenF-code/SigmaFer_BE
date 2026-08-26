@@ -16,12 +16,13 @@ class Usuarios(Base):
     telefono = Column(String(20), nullable=False, unique=True)
     password = Column(String(255), nullable=False)
     estado = Column(Boolean, nullable=False, default=True)
+    primer_ingreso = Column(Boolean, nullable=False, default=True)
     fecha_creacion = Column(Date, nullable=False, default=date.today)
     rol_id = Column(Integer, ForeignKey('rol.id'), nullable=False)
 
     rol = relationship('Roles', foreign_keys=[rol_id])
 
-    def __init__(self, nombre, correo, telefono, password, rol_id, identificacion, estado=True):
+    def __init__(self, nombre, correo, telefono, password, rol_id, identificacion, estado=True, primer_ingreso=True):
         self.nombre = nombre
         self.correo = correo
         self.telefono = telefono
@@ -29,6 +30,7 @@ class Usuarios(Base):
         self.rol_id = rol_id
         self.identificacion = identificacion
         self.estado = estado
+        self.primer_ingreso = primer_ingreso
 
     def set_password(self, raw_password):
         self.password = generate_password_hash(raw_password)

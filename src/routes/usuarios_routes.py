@@ -263,9 +263,19 @@ def login_usuario():
     if usuario.rol:
         user_data['rol'] = usuario.rol.nombre
 
+    # Si es el primer ingreso del usuario, requerir cambio de contraseña
+    if getattr(usuario, 'primer_ingreso', False):
+        return jsonify({
+            'primer_ingreso': True,
+            'message': 'Debe cambiar su contraseña en el primer inicio de sesión',
+            'temp_token': generate_token(usuario, horas=1),
+            'usuario': user_data
+        }), 200
+
     return jsonify({
         'message': 'Inicio de sesión exitoso',
         'access_token': generate_token(usuario),
         'token_type': 'Bearer',
         'usuario': user_data
     }), 200
+

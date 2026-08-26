@@ -6,9 +6,11 @@ class Categorias(Base):
 
     id = Column(Integer, primary_key=True)
     nombre = Column(String(150), nullable=False)
+    estado = Column(String(20), default='Activo', nullable=True)
 
-    def __init__(self, nombre):
+    def __init__(self, nombre, estado='Activo'):
         self.nombre = nombre
+        self.estado = estado or 'Activo'
 
     def save(self):
         session.add(self)
@@ -31,4 +33,8 @@ class Categorias(Base):
         return session.query(Categorias).filter_by(nombre=nombre).first()
     
     def to_dict(self):
-        return {column.name: getattr(self, column.name) for column in self.__table__.columns}
+        return {
+            'id': self.id,
+            'nombre': self.nombre,
+            'estado': self.estado or 'Activo'
+        }

@@ -1,12 +1,28 @@
 import time
 from flask import Blueprint, request, jsonify
+from sqlalchemy import text
 from werkzeug.security import generate_password_hash
 
+from src.models import engine
 from src.models.usuarios import Usuarios
 from src.models.rol import Roles
 from src.utils.auth import generate_token, token_required
 
 auth_bp = Blueprint('auth', __name__)
+
+# Asegurar columna primer_ingreso en MySQL
+def _asegurar_columna_primer_ingreso():
+    try:
+        with engine.connect() as conn:
+            res = conn.execute(text("SHOW COLUMNS FROM usuarios LIKE 'primer_ingreso'")).fetchone()
+            if not res:
+                conn.execute(text("ALTER TABLE usuarios ADD COLUMN primer_ingreso TINYINT(1) NOT NULL DEFAULT 1"))
+                conn.commit()
+    except Exception as e:
+        print("Aviso al verificar columna primer_ingreso en usuarios:", e)
+
+_asegurar_columna_primer_ingreso()
+
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
@@ -53,7 +69,8 @@ def register():
         password=password_hasheada,
         rol_id=rol_id,
         identificacion=identificacion,
-        estado=True
+        estado=True,
+        primer_ingreso=True
     )
     usuario.save()
 
@@ -68,7 +85,7 @@ def register():
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json() or {}
-    correo = (data.get('correo') or '').strip()
+    correo = (data.get('correo') or data.get('email') or '').strip()
     password = data.get('password')
 
     if not correo or not password:
@@ -82,10 +99,44 @@ def login():
     if not usuario.estado:
         return jsonify({'message': 'Usuario inactivo. Contacte al administrador'}), 403
 
+    user_data = usuario.to_dict()
+
+    # Si es el primer ingreso del usuario, interceptar y requerir cambio de contraseña
+    if getattr(usuario, 'primer_ingreso', False):
+        return jsonify({
+            'primer_ingreso': True,
+            'message': 'Debe cambiar su contraseña en el primer inicio de sesión',
+            'temp_token': generate_token(usuario, horas=1),
+            'usuario': user_data
+        }), 200
+
     return jsonify({
         'access_token': generate_token(usuario),
         'token_type': 'Bearer',
         'expires_in': 28800,
+        'usuario': user_data
+    }), 200
+
+
+@auth_bp.route('/cambiar_password_inicial', methods=['POST'])
+@token_required
+def cambiar_password_inicial():
+    data = request.get_json() or {}
+    nueva_password = str(data.get('password_nueva') or data.get('password') or '').strip()
+
+    if not nueva_password:
+        return jsonify({'message': 'La nueva contraseña es obligatoria'}), 400
+
+    if len(nueva_password) < 8:
+        return jsonify({'message': 'La contraseña debe tener al menos 8 caracteres'}), 400
+
+    usuario = request.usuario
+    usuario.set_password(nueva_password)
+    usuario.primer_ingreso = False
+    usuario.save()
+
+    return jsonify({
+        'message': 'Contraseña actualizada exitosamente. Inicie sesión con su nueva contraseña.',
         'usuario': usuario.to_dict()
     }), 200
 
