@@ -186,7 +186,7 @@ class Facturas(Base):
 
 
     # =====================================================
-    # OBTENER TODAS
+    # OBTENER TODAS (DE LA ÚLTIMA A LA PRIMERA)
     # =====================================================
 
     @staticmethod
@@ -194,7 +194,7 @@ class Facturas(Base):
 
         return session.query(
             Facturas
-        ).all()
+        ).order_by(Facturas.id.desc()).all()
 
 
     # =====================================================
@@ -269,4 +269,4 @@ class Facturas(Base):
                 result[column.name] = str(val)
             else:
                 result[column.name] = val
-        return result
+        return result

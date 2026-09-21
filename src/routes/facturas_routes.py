@@ -17,7 +17,7 @@ facturas_bp = Blueprint(
 
 
 # =========================================================
-# OBTENER TODAS LAS FACTURAS
+# OBTENER TODAS LAS FACTURAS (DE LA ÚLTIMA A LA PRIMERA)
 # =========================================================
 
 @facturas_bp.route('/', methods=['GET'])
@@ -27,7 +27,7 @@ def get_facturas():
 
     try:
 
-        facturas_list = Facturas.get()
+        facturas_list = session.query(Facturas).order_by(Facturas.id.desc()).all()
 
         result = []
 
@@ -141,7 +141,7 @@ def get_factura_by_id(factura_id):
             factura.numero_factura,
 
         'fecha_emision':
-            factura.fecha_emision.isoformat(),
+            factura.fecha_emision.isoformat() if factura.fecha_emision else None,
 
         'subtotal':
             str(factura.subtotal),
@@ -165,7 +165,7 @@ def get_factura_by_id(factura_id):
             factura.cliente_id,
 
         'cliente':
-            factura.cliente.razon_social,
+            factura.cliente.razon_social if factura.cliente else None,
 
 
         # Usuario / vendedor
@@ -174,7 +174,7 @@ def get_factura_by_id(factura_id):
             factura.usuario_id,
 
         'vendedor':
-            factura.usuario.nombre,
+            factura.usuario.nombre if factura.usuario else None,
 
 
         # Método de pago
@@ -183,7 +183,7 @@ def get_factura_by_id(factura_id):
             factura.metodo_pago_id,
 
         'metodo_pago':
-            factura.metodo_pago.nombre
+            factura.metodo_pago.nombre if factura.metodo_pago else None
 
     }
 
@@ -346,7 +346,7 @@ def create_factura():
 
 
         factura_dict = factura.to_dict()
-        factura_dict['fecha_emision'] = factura.fecha_emision.isoformat()
+        factura_dict['fecha_emision'] = factura.fecha_emision.isoformat() if hasattr(factura.fecha_emision, 'isoformat') else str(factura.fecha_emision)
         factura_dict['subtotal'] = str(factura.subtotal)
         factura_dict['iva'] = str(factura.iva)
         factura_dict['total'] = str(factura.total)
@@ -374,7 +374,7 @@ def create_factura():
 
 
 # =========================================================
-# ACTUALIZAR FACTURA
+# ACTUALIZAR FACTURA (INCLUYE REINTEGRO Y REAJUSTE DE STOCK)
 # =========================================================
 
 @facturas_bp.route('/<int:id>', methods=['PUT'])
@@ -408,21 +408,27 @@ def update_factura(id):
             return jsonify({'message': 'El método de pago no existe'}), 404
         factura.metodo_pago_id = metodo_pago.id
 
+    if 'observaciones' in data:
+        factura.observaciones = (data.get('observaciones') or '').strip()
+
+    if 'estado_pago' in data and data['estado_pago'] is not None:
+        factura.estado_pago = bool(int(data.get('estado_pago', 0))) if isinstance(data.get('estado_pago'), (int, str)) and str(data.get('estado_pago')).isdigit() else bool(data.get('estado_pago'))
+
     if 'detalles' in data:
         detalles_data = data.get('detalles', [])
         
         # 1. Obtener detalles previos
         detalles_actuales = DetalleFacturas.get_by_factura(id)
         
-        # 2. Devolver temporalmente el stock de los productos previos
+        # 2. Devolver temporalmente el stock de los productos previos al inventario
         for d in detalles_actuales:
             prod = Productos.get_by_id(d.producto_id)
             if prod:
-                stock_prev = prod.stock if prod.stock is not None else 0
-                prod.stock = stock_prev + d.cantidad
+                stock_prev = Decimal(str(prod.stock)) if prod.stock is not None else Decimal('0')
+                prod.stock = stock_prev + Decimal(str(d.cantidad))
                 prod.save()
 
-        # 3. Validar stock de los nuevos productos
+        # 3. Validar stock de los nuevos productos contra el stock reintegrado
         for item in detalles_data:
             p_id = item.get('producto_id')
             cant = int(item.get('cantidad', 0))
@@ -431,8 +437,8 @@ def update_factura(id):
                 if not prod:
                     session.rollback()
                     return jsonify({'message': f'Producto ID {p_id} no encontrado'}), 404
-                stock_actual = prod.stock if prod.stock is not None else 0
-                if stock_actual < cant:
+                stock_actual = Decimal(str(prod.stock)) if prod.stock is not None else Decimal('0')
+                if stock_actual < Decimal(str(cant)):
                     session.rollback()
                     return jsonify({
                         'message': f'Stock insuficiente para "{prod.nombre}". Stock disponible: {stock_actual}'
@@ -442,7 +448,7 @@ def update_factura(id):
         for d in detalles_actuales:
             d.delete()
 
-        # 5. Insertar nuevos detalles y descontar stock
+        # 5. Insertar nuevos detalles y descontar el nuevo stock
         for item in detalles_data:
             p_id = item.get('producto_id')
             cant = int(item.get('cantidad', 0))
@@ -460,11 +466,11 @@ def update_factura(id):
                         iva_porcentaje=Decimal(str(iva_pct))
                     )
                     detalle.save()
-                    stock_actual = prod.stock if prod.stock is not None else 0
-                    prod.stock = max(0, stock_actual - cant)
+                    stock_actual = Decimal(str(prod.stock)) if prod.stock is not None else Decimal('0')
+                    prod.stock = max(Decimal('0'), stock_actual - Decimal(str(cant)))
                     prod.save()
 
-        # 6. Recalcular totales
+        # 6. Recalcular totales con los nuevos detalles
         detalles_nuevos = DetalleFacturas.get_by_factura(factura.id)
         if detalles_nuevos:
             factura.recalcular_totales(detalles_nuevos)
@@ -490,6 +496,38 @@ def update_factura(id):
         }), 500
 
 
+# =========================================================
+# CAMBIAR ESTADO DE PAGO DE FACTURA
+# =========================================================
+
+@facturas_bp.route('/<int:id>/estado_pago', methods=['PUT', 'POST'])
+@token_required
+@rol_required('Administrador')
+def update_estado_pago(id):
+    factura = Facturas.get_by_id(id)
+    if not factura:
+        return jsonify({'message': 'Factura no encontrada'}), 404
+
+    data = request.get_json() or {}
+    if 'estado_pago' in data:
+        estado_pago = data['estado_pago']
+        factura.estado_pago = bool(int(estado_pago)) if isinstance(estado_pago, (int, str)) and str(estado_pago).isdigit() else bool(estado_pago)
+    else:
+        factura.estado_pago = not factura.estado_pago
+
+    try:
+        factura.save()
+        return jsonify({
+            'message': 'Estado de pago actualizado exitosamente',
+            'estado_pago': factura.estado_pago
+        }), 200
+    except Exception as e:
+        session.rollback()
+        return jsonify({
+            'message': 'Error al actualizar el estado de pago',
+            'error': str(e)
+        }), 500
+
 
 # =========================================================
 # ELIMINAR / ANULAR FACTURA
@@ -506,11 +544,12 @@ def delete_factura(id):
     try:
         # Obtener detalles asociados
         detalles = DetalleFacturas.get_by_factura(id)
-        # Devolver stock de los productos
+        # Devolver stock de los productos al inventario
         for detalle in detalles:
             producto = Productos.get_by_id(detalle.producto_id)
             if producto:
-                producto.stock += detalle.cantidad
+                stock_prev = producto.stock if producto.stock is not None else 0
+                producto.stock = stock_prev + detalle.cantidad
                 producto.save()
             detalle.delete()
 

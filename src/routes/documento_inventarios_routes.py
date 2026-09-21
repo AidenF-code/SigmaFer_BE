@@ -265,6 +265,73 @@ def update_documento(id):
         if estado in ['0', '1', 0, 1, True, False]:
             doc.estado = bool(int(estado))
 
+    if 'detalles' in data:
+        detalles_data = data.get('detalles', [])
+        
+        try:
+            # 1. Obtener detalles previos
+            detalles_actuales = DetalleDocInventario.get_by_documento(id)
+            
+            # 2. Revertir temporalmente la afectación previa al stock
+            for d in detalles_actuales:
+                prod = Productos.get_by_id(d.producto_id)
+                if prod:
+                    stock_prev = int(prod.stock) if prod.stock is not None else 0
+                    if doc.tipo_documento in [TipoDocumento.ENTRADA, TipoDocumento.DEVOLUCION, TipoDocumento.AJUSTE]:
+                        prod.stock = max(0, stock_prev - d.cantidad)
+                    elif doc.tipo_documento == TipoDocumento.SALIDA:
+                        prod.stock = stock_prev + d.cantidad
+                    prod.save()
+
+            # 3. Si es SALIDA, validar stock disponible de los nuevos productos
+            if doc.tipo_documento == TipoDocumento.SALIDA:
+                for item in detalles_data:
+                    p_id = item.get('producto_id')
+                    cant = int(item.get('cantidad', 0))
+                    if p_id and cant > 0:
+                        prod = Productos.get_by_id(p_id)
+                        if not prod:
+                            session.rollback()
+                            return jsonify({'message': f'Producto ID {p_id} no encontrado'}), 404
+                        stock_act = int(prod.stock) if prod.stock is not None else 0
+                        if stock_act < cant:
+                            session.rollback()
+                            return jsonify({
+                                'message': f'Stock insuficiente para "{prod.nombre}". Stock disponible: {stock_act}'
+                            }), 400
+
+            # 4. Eliminar detalles anteriores de la base de datos
+            for d in detalles_actuales:
+                d.delete()
+
+            # 5. Insertar los nuevos detalles y aplicar nueva afectación al stock
+            for item in detalles_data:
+                p_id = item.get('producto_id')
+                cant = int(item.get('cantidad', 0))
+                val_u = item.get('valor_unitario', 0)
+
+                if p_id and cant > 0:
+                    prod = Productos.get_by_id(p_id)
+                    if prod:
+                        detalle = DetalleDocInventario(
+                            documento_id=doc.id,
+                            producto_id=p_id,
+                            cantidad=cant,
+                            valor_unitario=val_u
+                        )
+                        detalle.save()
+
+                        stock_act = int(prod.stock) if prod.stock is not None else 0
+                        if doc.tipo_documento in [TipoDocumento.ENTRADA, TipoDocumento.DEVOLUCION, TipoDocumento.AJUSTE]:
+                            prod.stock = stock_act + cant
+                        elif doc.tipo_documento == TipoDocumento.SALIDA:
+                            prod.stock = max(0, stock_act - cant)
+                        prod.save()
+
+        except Exception as e:
+            session.rollback()
+            return jsonify({'message': 'Error al actualizar los productos del documento', 'error': str(e)}), 500
+
     try:
         doc.save()
         return jsonify({

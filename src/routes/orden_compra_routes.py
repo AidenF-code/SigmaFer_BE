@@ -198,6 +198,38 @@ def update_orden(id):
         if estado in ['0', '1', 0, 1, True, False]:
             orden.estado = bool(int(estado))
 
+    if 'detalles' in data:
+        detalles_data = data.get('detalles', [])
+        try:
+            # Eliminar detalles previos
+            detalles_previos = DetalleOC.get_by_orden(id)
+            for d in detalles_previos:
+                d.delete()
+
+            # Insertar nuevos detalles
+            for item in detalles_data:
+                producto_id = item.get('producto_id')
+                cantidad = item.get('cantidad')
+                valor_unitario = item.get('valor_unitario')
+
+                if producto_id and cantidad and valor_unitario is not None:
+                    producto = Productos.get_by_id(producto_id)
+                    if producto:
+                        detalle = DetalleOC(
+                            orden_compra_id=orden.id,
+                            producto_id=producto_id,
+                            cantidad=int(cantidad),
+                            valor_unitario=float(valor_unitario)
+                        )
+                        detalle.save()
+
+            # Recalcular totales
+            detalles = DetalleOC.get_by_orden(orden.id)
+            orden.recalcular_totales(detalles)
+        except Exception as e:
+            session.rollback()
+            return jsonify({'message': 'Error al actualizar los productos de la orden de compra', 'error': str(e)}), 500
+
     try:
         orden.save()
         return jsonify({
