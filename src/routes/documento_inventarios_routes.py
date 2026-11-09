@@ -17,8 +17,6 @@ documentos_inventario_bp = Blueprint('documentos_inventario', __name__)
 # =========================================================
 
 @documentos_inventario_bp.route('/', methods=['GET'])
-@token_required
-@rol_required('Administrador')
 def get_documentos():
     import unicodedata
     def clean_txt(t):
@@ -58,8 +56,6 @@ def get_documentos():
 # =========================================================
 
 @documentos_inventario_bp.route('/<int:id>', methods=['GET'])
-@token_required
-@rol_required('Administrador')
 def get_documento(id):
     doc = DocumentoInventarios.get_by_id(id)
     if not doc:
@@ -111,8 +107,6 @@ def get_documento(id):
 # =========================================================
 
 @documentos_inventario_bp.route('/siguiente_numero', methods=['GET'])
-@token_required
-@rol_required('Administrador')
 def get_siguiente_numero():
     tipo = request.args.get('tipo', 'CO')
     numero = DocumentoInventarios.generar_numero_documento(tipo)
@@ -124,8 +118,6 @@ def get_siguiente_numero():
 # =========================================================
 
 @documentos_inventario_bp.route('/', methods=['POST'])
-@token_required
-@rol_required('Administrador')
 def create_documento():
     data = request.get_json()
     if not data:
@@ -246,8 +238,6 @@ def create_documento():
 # =========================================================
 
 @documentos_inventario_bp.route('/<int:id>', methods=['PUT'])
-@token_required
-@rol_required('Administrador')
 def update_documento(id):
     doc = DocumentoInventarios.get_by_id(id)
     if not doc:
@@ -348,8 +338,6 @@ def update_documento(id):
 # =========================================================
 
 @documentos_inventario_bp.route('/<int:id>', methods=['DELETE'])
-@token_required
-@rol_required('Administrador')
 def delete_documento(id):
     doc = DocumentoInventarios.get_by_id(id)
     if not doc:

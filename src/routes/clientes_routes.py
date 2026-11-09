@@ -9,8 +9,6 @@ clientes_bp = Blueprint('clientes', __name__)
 # =========================================================
 
 @clientes_bp.route('/', methods=['GET'])
-@token_required
-@rol_required('Administrador')
 def get_clientes():
     clientes = Clientes.get()
     clientes_list = []
@@ -37,8 +35,6 @@ def get_clientes():
 # =========================================================
 
 @clientes_bp.route('/<int:id>', methods=['GET'])
-@token_required
-@rol_required('Administrador')
 def get_cliente(id):
     cliente = Clientes.get_by_id(id)
 
@@ -67,8 +63,6 @@ def get_cliente(id):
 # =========================================================
 
 @clientes_bp.route('/', methods=['POST'])
-@token_required
-@rol_required('Administrador')
 def create_cliente():
     data = request.get_json()
 
@@ -182,8 +176,6 @@ def create_cliente():
 # =========================================================
 
 @clientes_bp.route('/<int:id>', methods=['PUT'])
-@token_required
-@rol_required('Administrador')
 def update_cliente(id):
     cliente = Clientes.get_by_id(id)
     if not cliente:
@@ -296,8 +288,6 @@ def update_cliente(id):
 # =========================================================
 
 @clientes_bp.route('/<int:id>', methods=['DELETE'])
-@token_required
-@rol_required('Administrador')
 def delete_cliente(id):
     cliente = Clientes.get_by_id(id)
     if not cliente:

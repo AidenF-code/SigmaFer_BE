@@ -9,8 +9,6 @@ from src.utils.auth import token_required, rol_required
 detalle_facturas_bp = Blueprint('detalle_facturas', __name__)
 
 @detalle_facturas_bp.route('/', methods=['GET'])#Mostrar todos los detalles de facturas
-@token_required
-@rol_required('Administrador')
 def get_detalle_facturas():
     detalle_facturas_list = DetalleFacturas.get()
     result = []
@@ -31,8 +29,6 @@ def get_detalle_facturas():
     return jsonify(result), 200
 
 @detalle_facturas_bp.route('/<int:id>', methods=['GET'])#Mostrar detalle de factura por ID
-@token_required
-@rol_required('Administrador')
 def get_detalle_factura_by_id(id):
     detalle = DetalleFacturas.get_by_id(id)
     if detalle:
@@ -55,8 +51,6 @@ def get_detalle_factura_by_id(id):
 
 
 @detalle_facturas_bp.route('/factura/<int:factura_id>', methods=['GET'])
-@token_required
-@rol_required('Administrador')
 def get_detalle_facturas_by_factura(factura_id):
 
     factura = Facturas.get_by_id(factura_id)
@@ -88,8 +82,6 @@ def get_detalle_facturas_by_factura(factura_id):
 
 
 @detalle_facturas_bp.route('/', methods=['POST'])#Crear detalle de factura
-@token_required
-@rol_required('Administrador')
 def create_detalle_factura():
 
     data = request.get_json()
@@ -206,8 +198,6 @@ def create_detalle_factura():
 
 
 @detalle_facturas_bp.route('/<int:detalle_id>', methods=['PUT'])
-@token_required
-@rol_required('Administrador')
 def update_detalle_factura(detalle_id):
 
     # 1. Buscar detalle
@@ -350,8 +340,6 @@ def update_detalle_factura(detalle_id):
 # =========================================================
 
 @detalle_facturas_bp.route('/<int:detalle_id>', methods=['DELETE'])
-@token_required
-@rol_required('Administrador')
 def delete_detalle_factura(detalle_id):
     detalle = DetalleFacturas.get_by_id(detalle_id)
     if not detalle:

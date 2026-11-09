@@ -7,8 +7,6 @@ from src.utils.auth import token_required, rol_required, generate_token
 usuarios_bp = Blueprint('usuarios', __name__)
 
 @usuarios_bp.route('/', methods=['GET'])  # Todos los usuarios
-@token_required
-@rol_required('Administrador')
 def get_usuarios():
     usuarios = Usuarios.get()
     usuarios_list = []
@@ -28,8 +26,6 @@ def get_usuarios():
 
 
 @usuarios_bp.route('/<int:id>', methods=['GET'])  # Usuario por ID
-@token_required
-@rol_required('Administrador')
 def get_usuario(id):
     usuario = Usuarios.get_by_id(id)
     if usuario:
@@ -50,8 +46,6 @@ def get_usuario(id):
 
 
 @usuarios_bp.route('/', methods=['POST'])  # Crear usuario
-@token_required
-@rol_required('Administrador')
 def crear_usuario():
     data = request.get_json()
 
@@ -152,8 +146,6 @@ def crear_usuario():
 
 
 @usuarios_bp.route('/<int:id>', methods=['PUT'])  # Actualizar usuario
-@token_required
-@rol_required('Administrador')
 def update_usuario(id):
     usuario = Usuarios.get_by_id(id)
     if not usuario:
@@ -221,8 +213,6 @@ def update_usuario(id):
 
 
 @usuarios_bp.route('/<int:id>', methods=['DELETE'])  # Eliminar usuario
-@token_required
-@rol_required('Administrador')
 def delete_usuario(id):
     usuario = Usuarios.get_by_id(id)
     if not usuario:

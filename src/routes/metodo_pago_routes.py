@@ -14,8 +14,6 @@ metodos_pago_bp = Blueprint(
 # =========================================================
 
 @metodos_pago_bp.route('/', methods=['GET'])
-@token_required
-@rol_required('Administrador')
 def get_metodos_pago():
 
     metodos_pago = MetodoPago.get()
@@ -38,8 +36,6 @@ def get_metodos_pago():
 # =========================================================
 
 @metodos_pago_bp.route('/<int:metodo_id>', methods=['GET'])
-@token_required
-@rol_required('Administrador')
 def get_metodo_pago(metodo_id):
 
     metodo = MetodoPago.get_by_id(metodo_id)
@@ -66,8 +62,6 @@ def get_metodo_pago(metodo_id):
 # =========================================================
 
 @metodos_pago_bp.route('/', methods=['POST'])
-@token_required
-@rol_required('Administrador')
 def create_metodo_pago():
 
     data = request.get_json()
@@ -192,8 +186,6 @@ def create_metodo_pago():
 # =========================================================
 
 @metodos_pago_bp.route('/<int:metodo_id>', methods=['PUT'])
-@token_required
-@rol_required('Administrador')
 def update_metodo_pago(metodo_id):
 
     metodo = MetodoPago.get_by_id(
@@ -332,8 +324,6 @@ def update_metodo_pago(metodo_id):
 # =========================================================
 
 @metodos_pago_bp.route('/<int:metodo_id>', methods=['DELETE'])
-@token_required
-@rol_required('Administrador')
 def delete_metodo_pago(metodo_id):
 
     metodo = MetodoPago.get_by_id(

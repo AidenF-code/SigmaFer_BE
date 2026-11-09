@@ -21,16 +21,12 @@ _asegurar_columna_estado()
 
 
 @categorias_bp.route('/', methods=['GET'])
-@token_required
-@rol_required('Administrador')
 def get_categorias():
     categorias = Categorias.get()
     return jsonify([cat.to_dict() for cat in categorias]), 200
 
 
 @categorias_bp.route('/<int:categoria_id>', methods=['GET'])
-@token_required
-@rol_required('Administrador')
 def get_categoria_by_id(categoria_id):
     categoria = Categorias.get_by_id(categoria_id)
     if not categoria:
@@ -40,8 +36,6 @@ def get_categoria_by_id(categoria_id):
 
 # Crear Categoría
 @categorias_bp.route('/', methods=['POST'])
-@token_required
-@rol_required('Administrador')
 def create_categoria():
     data = request.get_json()
     if not data:
@@ -64,8 +58,6 @@ def create_categoria():
 
 # Actualizar Categoría
 @categorias_bp.route('/<int:id>', methods=['PUT'])
-@token_required
-@rol_required('Administrador')
 def update_categoria(id):
     categoria = Categorias.get_by_id(id)
     if not categoria:
@@ -93,8 +85,6 @@ def update_categoria(id):
 
 # Alternar Estado (Activo / Inactivo)
 @categorias_bp.route('/<int:id>/toggle_estado', methods=['PATCH', 'POST'])
-@token_required
-@rol_required('Administrador')
 def toggle_estado(id):
     categoria = Categorias.get_by_id(id)
     if not categoria:
@@ -108,8 +98,6 @@ def toggle_estado(id):
 
 # Eliminar Categoría
 @categorias_bp.route('/<int:id>', methods=['DELETE'])
-@token_required
-@rol_required('Administrador')
 def delete_categoria(id):
     categoria = Categorias.get_by_id(id)
     if not categoria:

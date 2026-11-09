@@ -21,16 +21,12 @@ _asegurar_columna_permisos()
 
 
 @roles_bp.route('/', methods=['GET'])
-@token_required
-@rol_required('Administrador')
 def get_roles():
     roles = Roles.get()
     return jsonify([rol.to_dict() for rol in roles]), 200
 
 
 @roles_bp.route('/<int:rol_id>', methods=['GET'])
-@token_required
-@rol_required('Administrador')
 def get_rol_by_id(rol_id):
     rol = Roles.get_by_id(rol_id)
     if not rol:
@@ -40,8 +36,6 @@ def get_rol_by_id(rol_id):
 
 # Crear Rol    
 @roles_bp.route('/', methods=['POST'])
-@token_required
-@rol_required('Administrador')
 def create_rol():
     data = request.get_json()
     if not data:
@@ -64,8 +58,6 @@ def create_rol():
 
 # Actualizar Rol
 @roles_bp.route('/<int:id>', methods=['PUT'])
-@token_required
-@rol_required('Administrador')
 def update_rol(id):
     rol = Roles.get_by_id(id)
     if not rol:
@@ -94,8 +86,6 @@ def update_rol(id):
 
 # Eliminar Rol
 @roles_bp.route('/<int:id>', methods=['DELETE'])
-@token_required
-@rol_required('Administrador')
 def delete_rol(id):
     rol = Roles.get_by_id(id)
     if not rol:

