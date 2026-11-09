@@ -11,7 +11,7 @@ productos_bp = Blueprint('productos', __name__)
 
 @productos_bp.route('/', methods=['GET'])
 @token_required
-@rol_required('Administrador')
+@rol_required('Administrador', 'Vendedor')
 def get_productos():
     productos = Productos.get()
     productos_list = []
@@ -36,7 +36,7 @@ def get_productos():
 
 @productos_bp.route('/<int:producto_id>', methods=['GET'])
 @token_required
-@rol_required('Administrador')
+@rol_required('Administrador', 'Vendedor')
 def get_producto_by_id(producto_id):
     producto = Productos.get_by_id(producto_id)
     if producto:
